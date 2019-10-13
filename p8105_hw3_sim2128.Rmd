@@ -2,10 +2,90 @@
 title: "HW3"
 author: "Sarah Munro"
 date: "10/13/2019"
-output: html_document
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(p8105.datasets)
 ```
+
+```{r}
+library(tidyverse)
+```
+
+#Problem 1
+
+_Load the dataset instacart_
+```{r}
+library(p8105.datasets)
+data("instacart")
+```
+
+```{r}
+view(instacart)
+```
+
+_Describe the dataset instacart_
+The dataset `instacart` has `r nrow(instacart)` observations and `r ncol(instacart)` variables. The dataset contains information on products ordered from a grocery store with key variables including `order_id` `aisle` `product_name` and `department`. The variables provide a very detailed breakdown of the orders describing the order in which products were added as well as the hour of the day the order was placed. 
+
+_Count the number of aisles and the aisles with the most items orderd_
+```{r}
+count(instacart, aisle, name = "n_orders") %>%
+arrange(desc(n_orders)) 
+##There are 134 asiles in total. The aisles for fresh vegetables and fresh fruits received the most orders, with 150,609 items and 150,473 items ordered respectively.  
+```
+
+_Make a plot that shows the number of items ordered in each aisle, limiting this to aisles with more than 10000 items ordered_
+```{r}
+instacart %>%
+  count(aisle, name = "n_orders") %>%
+  filter (n_orders > 10000) %>%
+  ggplot(aes(x=aisle, y=n_orders)) + 
+  geom_point(color = "magenta") + 
+  theme(
+    axis.text.x = element_text(angle=90, hjust=1)
+  ) +
+  labs(title = "Quantity of Items Ordered by Aisle", x = "Aisle Name", y = "Number of Items Ordered") 
+ 
+```
+
+_Create a table showing the three most popular items in each of the aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”_ 
+```{r}
+instacart %>%
+  filter(aisle == "baking ingredients" | aisle == "dog food care" | aisle == "packaged vegetables fruits") %>%
+  group_by(aisle, product_name) %>%
+  summarize(order_frequency = n()) %>%
+  top_n(3) %>%
+  arrange(desc(order_frequency)) %>%
+  knitr::kable ()
+``` 
+
+_Make a table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week_
+```{r}
+instacart %>%
+  filter( product_name == "Pink Lady Apples" | product_name == "Coffee Ice Cream") %>%
+  group_by(product_name, order_dow) %>%
+  summarize(avg_hour = mean(order_hour_of_day)) %>%
+  select(product_name, order_dow, avg_hour) %>%
+  pivot_wider(
+    names_from = order_dow,
+    values_from = avg_hour) %>%
+knitr::kable ()
+```
+
+#Problem 2
+
+```{r}
+data("brfss_smart2010")
+brfss = brfss_smart2010 %>%
+  janitor::clean_names() %>% 
+  filter(topic == "Overall Health", response == "Excellent" | response == "Very Good" | response == "Good" | response == "Fair" | response == "Poor") %>%
+mutate(response=factor(response, labels =c("Poor","Fair","Good","Very Good","Excellent"))) 
+  brfss
+```
+
+
+
 
