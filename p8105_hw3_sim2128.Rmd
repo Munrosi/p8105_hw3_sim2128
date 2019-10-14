@@ -77,15 +77,87 @@ knitr::kable ()
 
 #Problem 2
 
+_Clean the dataset BRFSS_
 ```{r}
 data("brfss_smart2010")
 brfss = brfss_smart2010 %>%
   janitor::clean_names() %>% 
   filter(topic == "Overall Health", response == "Excellent" | response == "Very Good" | response == "Good" | response == "Fair" | response == "Poor") %>%
-mutate(response=factor(response, labels =c("Poor","Fair","Good","Very Good","Excellent"))) 
+mutate(response = factor(response, levels =  c("Poor","Fair","Good","Very Good","Excellent")))
   brfss
 ```
 
+_In 2002, which states were observed at 7 or more locations? What about in 2010?_
+```{r}
+brfss %>%
+  filter(year == 2002 ) %>%
+  group_by(locationabbr) %>%
+  summarize(n_locations = n_distinct(geo_location)) %>%
+  select(locationabbr, n_locations) %>%
+  arrange(desc(n_locations))
+## There are 6 states (PA, MA, NJ, CT, FL, NC) that were observed at 7 or more locations in 2002
+```
+```{r}
+brfss %>%
+  filter(year == 2010 ) %>%
+  group_by(locationabbr) %>%
+  summarize(n_locations = n_distinct(geo_location)) %>%
+  select(locationabbr, n_locations) %>%
+  arrange(desc(n_locations))
+## In 2010 there were 14 states observed at 7 or more locations
+```
 
+_Make a new dataset and a spaghetti plot showing the average data values over time for each state_
+```{r}
+excellent_health = brfss %>%
+  filter(response == "Excellent") %>%
+  group_by(year, locationabbr) %>%
+  summarize(avg = mean(data_value)) %>%
+  select (year, locationabbr, avg) %>%
+ggplot(aes(x=year, y=avg)) +geom_line(aes(color=locationabbr)) + labs(title = "Average State Data Values Across Time", y = "Average Data Values")
+excellent_health
+```
 
+_Make a two-panel plot showing distribution of data_value for responses among locations in NY State_
+```{r}
+brfss %>%
+  filter (locationabbr == "NY", year == 2006 | year == 2010) %>%
+  ggplot(aes(x=locationdesc, y=data_value)) + geom_point(aes(color=response)) + facet_grid(. ~year) + theme(
+    axis.text.x = element_text(angle=90, hjust=1)) +
+  labs(title = "Distribution of Data Value Among NY")
+```  
+
+#Problem 3
+
+_Load and tidy the new dataset_
+```{r}
+acceleration = read_csv("./Data/accel_data.csv") %>%
+  janitor::clean_names() %>%
+  drop_na()%>%
+  mutate(time_of_week = if_else(day == "Saturday" | day == "Sunday", "weekend", "week_day")) %>%
+select(week, day_id, day, time_of_week, everything())
+acceleration
+```
+The dataset `acceleration` has `r nrow(acceleration)` observations and `r ncol(acceleration)` variables. Key variables include `week` `day_id` and `time_of_week`. The activity variables correspond to the average activity for each minute of the day.
+
+_Aggregate accross minutes to create a total activity variable for each day, and create a table showing these totals_
+```{r}
+total_acc = acceleration %>%
+    pivot_longer(activity_1:activity_1440,
+    names_to = "daily_activity",
+    values_to = "activity"
+    ) %>%
+    group_by(week, day_id, day, time_of_week) %>%
+    summarize(total_activity = sum(activity)) 
+total_acc
+```
+_There appears to be no noticeable trends, he is not consistently more or less active on weekdays or weekends. It seems that he took his wrist band off on the 24th and 31st day of the month, which are both saturdays._ 
+
+```{r}
+total_acc %>%
+  ggplot(aes(x=day_id, y=total_activity)) + geom_line(aes(color=day)) + labs(title= "Activity Breakdown by Day")
+```
+_Monday has both one of the highest and lowest peaks. Saturday bottoms out and plateaus at the end of the month when he takes his wrist band off. Tuesday and Wednesday appear to be the most consistent days throughout the month._
+  
+  
 
