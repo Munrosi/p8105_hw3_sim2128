@@ -28,6 +28,7 @@ view(instacart)
 ```
 
 _Describe the dataset instacart_
+
 The dataset `instacart` has `r nrow(instacart)` observations and `r ncol(instacart)` variables. The dataset contains information on products ordered from a grocery store with key variables including `order_id` `aisle` `product_name` and `department`. The variables provide a very detailed breakdown of the orders describing the order in which products were added as well as the hour of the day the order was placed. 
 
 _Count the number of aisles and the aisles with the most items orderd_
@@ -69,6 +70,7 @@ instacart %>%
   group_by(product_name, order_dow) %>%
   summarize(avg_hour = mean(order_hour_of_day)) %>%
   select(product_name, order_dow, avg_hour) %>%
+  day_of_week = recode(order_dow, `0` ="Sunday", `1` ="Monday", `2` ="Tuesday", `3` ="Wednesday", `4` ="Thursday", `5`="Friday", `6`="Saturday") %>%
   pivot_wider(
     names_from = order_dow,
     values_from = avg_hour) %>%
@@ -142,22 +144,31 @@ The dataset `acceleration` has `r nrow(acceleration)` observations and `r ncol(a
 
 _Aggregate accross minutes to create a total activity variable for each day, and create a table showing these totals_
 ```{r}
-total_acc = acceleration %>%
+acceleration %>%
     pivot_longer(activity_1:activity_1440,
-    names_to = "daily_activity",
+    names_to = "minute",
     values_to = "activity"
     ) %>%
     group_by(week, day_id, day, time_of_week) %>%
-    summarize(total_activity = sum(activity)) 
-total_acc
+    summarize(total_activity = sum(activity)) %>%
+knitr::kable()
 ```
 _There appears to be no noticeable trends, he is not consistently more or less active on weekdays or weekends. It seems that he took his wrist band off on the 24th and 31st day of the month, which are both saturdays._ 
 
+_Make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week_
 ```{r}
-total_acc %>%
-  ggplot(aes(x=day_id, y=total_activity)) + geom_line(aes(color=day)) + labs(title= "Activity Breakdown by Day")
-```
-_Monday has both one of the highest and lowest peaks. Saturday bottoms out and plateaus at the end of the month when he takes his wrist band off. Tuesday and Wednesday appear to be the most consistent days throughout the month._
-  
-  
-
+acceleration %>%
+  pivot_longer(activity_1:activity_1440,
+               names_to = "minute",
+               values_to = "activity") %>%
+separate(minute, into = c("activity_name", "minute")) %>%
+mutate(minute = as.numeric(minute)) %>%
+  ggplot(aes(x=minute, y=activity)) + geom_point(aes(color=day)) + labs(title="Activity Breakdown by Day", x = "Hour of the Day") +scale_x_continuous(
+    breaks = c(1, 60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 660, 720, 780, 840, 900, 960, 1020, 1080, 1140, 1200, 1260, 1320, 1380, 1440),
+    labels = c("12 AM", "1 AM", "2 AM", "3 AM", "4 AM", "5 AM", "6 AM", "7 AM", "8 AM", "9 AM","10 AM", "11 AM", "12 PM", "1 PM", "2 PM", "3 PM", "4 PM", "5 PM", "6 PM", "7 PM", "8 PM", "9 PM", "10 PM", "11 PM", "12 AM")) + theme(axis.text.x = element_text(angle=50, hjust=1)) + 
+  viridis::scale_color_viridis(
+    name = "day", 
+    discrete = TRUE
+  )
+```  
+_There are not many discernable patterns from the plot. One can see that he is relatively unactive, with most measurements falling below 2500. Perhaps he works a desk job where he doesn't get a lot of movement. His activity peaks on Fridays between 8-10 pm, and on wednesdays around 8 pm. Sunday seems to have the highest midday peaks. Activity is very low for all days between 10 pm and 5 am, which is to be expected while he is sleeping._
